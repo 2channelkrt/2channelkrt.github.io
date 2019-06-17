@@ -1,0 +1,17 @@
+if [ $# -lt 1 ];
+then
+	echo "commit message required"
+	exit -1
+fi
+if [ $# -gt 1 ];
+then
+	echo "only one commit message required"
+	echo 'maybe you forgot to encase in "'
+	exit -1
+fi
+
+cd ../2channelkrt.github.io
+git add .
+git commit -m "$1"
+git push
+exit 0
