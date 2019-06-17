@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.5.0 -->
+<title>Mimicking Bach - Melody with LSTM | 2channelkrt</title>
+<meta name="generator" content="Jekyll v3.8.5" />
+<meta property="og:title" content="Mimicking Bach - Melody with LSTM" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="This is online version of the report for Mimicking Bach." />
+<meta property="og:description" content="This is online version of the report for Mimicking Bach." />
+<link rel="canonical" href="http://localhost:4000/home/taro/my_blog/regular_post/2019/06/17/Mimicking-Bach-Melody-with-LSTM.html" />
+<meta property="og:url" content="http://localhost:4000/home/taro/my_blog/regular_post/2019/06/17/Mimicking-Bach-Melody-with-LSTM.html" />
+<meta property="og:site_name" content="2channelkrt" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2019-06-17T00:00:01+09:00" />
+<script type="application/ld+json">
+{"description":"This is online version of the report for Mimicking Bach.","@type":"BlogPosting","url":"http://localhost:4000/home/taro/my_blog/regular_post/2019/06/17/Mimicking-Bach-Melody-with-LSTM.html","headline":"Mimicking Bach - Melody with LSTM","dateModified":"2019-06-17T00:00:01+09:00","datePublished":"2019-06-17T00:00:01+09:00","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/home/taro/my_blog/regular_post/2019/06/17/Mimicking-Bach-Melody-with-LSTM.html"},"@context":"http://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/home/taro/my_blog/assets/main.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/home/taro/my_blog/feed.xml" title="2channelkrt" /></head>
+<body><header class="site-header" role="banner">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/home/taro/my_blog/">2channelkrt</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/home/taro/my_blog/about/">About</a><a class="page-link" href="/home/taro/my_blog/CV/">CV</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">Mimicking Bach - Melody with LSTM</h1>
+    <p class="post-meta">
+      <time class="dt-published" datetime="2019-06-17T00:00:01+09:00" itemprop="datePublished">Jun 17, 2019
+      </time></p>
+  </header>
+
+  <div class="post-content e-content" itemprop="articleBody">
+    <p>This is online version of the report for <a href="https://github.com/2channelkrt/Mimicking-Bach">Mimicking Bach</a>.</p>
+
+<h1 id="1-introduction">1. Introduction</h1>
+<p>With explosive growth of computing powers, and recent take off of GPGPU, machine learning capabilities are expanding its boundaries day by day. Not only in mathematical and scientific fields of application, but what was once treated as unique ability of human, inspiration, is no longer exclusive feature of our own. This study is to find out whether machine learning can mimic the acoustic inspiration of human being, specially using Bachs’ creation. Big corporation such as Google has already tackled this subject, and showed possibility that machine can create its own music based on the training set. Several other attempts, including this one[1] also approached this subject and showed optimistic possibilities. So we thought, why not try it ourself?</p>
+<h1 id="2-representing-music-data">2. Representing Music Data</h1>
+<p>First, we need to split the music into sequence of little pieces, for neural model to understand. This study, we discretize continuous music file into sequence of events. For this study, such event is only when note is played/pressed. For simplicity, only highest note in the music (which tends to be the melody) is selected. This forms one-dimension one-hot representation of the note. For the beat, for each note played, we measure the duration of that note. Since duration(beat) of the note from the melody is usually multiples of duration of the shortest note played, beat also, can be classified to one dimensional one-hot vector. Then, using note and beat one-hot vector as a axis, we form two-dimensional one-hot vector, which is shown in Figure 1. Finally, we flat out two-dimensional one-hot vector to one-dimension. This is the input data format for the neural model.<br />
+<img src="http://localhost:4000/home/taro/my_blog/assets/MB_image/1.png" alt="image1" /></p>
+
+<h2 id="21-dataset">2.1 Dataset</h2>
+<p>Dataset used for this study is retrieved from MuseData, specifically only ‘Keyboard Music’ composed by ‘Johann Sebastian Bach’. Total data has 96 tracks formatted in MIDI.<br />
+<a href="http://www.musedata.org/">www.musedata.org</a></p>
+<h2 id="22-tools">2.2 Tools</h2>
+<p>‘midicsv’ supports bidirectional conversion between MIDI and CSV file format.<br />
+<a href="http://www.fourmilab.ch/webtools/midicsv/">www.fourmilab.ch/webtools/midicsv/</a><br />
+Since converted CSV file provides intuitive, and simple view of the track, through this study, all MIDI files were converted to CSV format in order to build vectors for the neural network. After learning process is done, guesses and created musical melody was decomposed to CSV file format, then converted to audible MIDI file using ‘midicsv’.</p>
+<h2 id="23-preprocessing">2.3 Preprocessing</h2>
+<p>Before dumping all the data into the model for training, we need to manipulate our data into list of one-hot vectors. MIDI files have variety of information about how notes are played, but for our model, we just need to extract the note on \&amp; off information. In order to simplify the conversion, we first filter our data through ‘midicsv’ tool. Using ‘midicsv’, MIDI files are converted to CSV file, containing information about which notes are played after another. Figure 2 shows the format of MIDI and output of ‘midicsv’.<br />
+<img src="http://localhost:4000/home/taro/my_blog/assets/MB_image/2.png" alt="image2" /></p>
+<h2 id="24-event-baed-multi-hot-vector">2.4 Event-baed multi-hot vector</h2>
+<p>Input data is one-hot vector with length of (number_of_notes * number_of_beats). Standard piano has 88 notes, and dataset used for this study had more than 100 different length of beats. But notes below 36 never occurred, and more than 80% of the beat occurred summed up took less than 1% of the total note, as shown in Figure 3.<br />
+<img src="http://localhost:4000/home/taro/my_blog/assets/MB_image/3.png" alt="image3" /><br />
+In order to reduce the dimension of the input, number of notes are reduced to 88-36=52, and beats with low rates of appearance was replaced with nearby more frequent beat(actual difference of the played time is unnoticeable to human), or deleted from the dataset(longest note was played for more than 100 times of the most frequent note, which is very unusual for man-created music. This is probably the residue data from data preprocessing). Trimmed data is shown in Figure 4, and note distribution is shown in Figure 5.<br />
+<img src="http://localhost:4000/home/taro/my_blog/assets/MB_image/4.png" alt="image4" /><br />
+<img src="http://localhost:4000/home/taro/my_blog/assets/MB_image/5.png" alt="image5" /><br />
+Without reduction of input dimension, input size would be over 10,000. After reduction, input size was reduced below 1,000. For this method, input and output format is basically same for the ones used in models of one-hot vector representation of word sequence. Each node in the model would have output size same as input, and when gone through softmax filter, whole output for each node would be the distribution of probabilities of flattened out version of two-dimensional (note, beat) output. Then, vector with highest probability is chosen as {note, key} played.</p>
+<h1 id="3-model">3. Model</h1>
+<p>Since musical information has heavy sequential characteristics, LSTM followed by fully-connected layer is implemented for this study. Model would take one-hot vector as an input and produces an output, which is then fed into fully-connected layer, resulting in same shape as original input. After going through softmax filter, this becomes the machines’ guess of what event occurs next. At the training time, this final result is compared with real output(which actual next event, according to the music file) using cross-entropy loss. Figure 6 depicts overall model.<br />
+<img src="http://localhost:4000/home/taro/my_blog/assets/MB_image/6.png" alt="image6" /></p>
+<h1 id="4-result">4. Result</h1>
+<p>loss at the start state was 6.8 and through using wider &amp; deeper model, reached training &amp; validation loss below 0.1, as shown in Figure 7. After done training, we had model to create its own melody, giving only the first note and beat tuple. Each time, we fed trained model with various first note, with most commonly used beat. Given a note &amp; beat tuple as an input, model goes through forward calculation to produce an output, which is model’s guess of what note &amp; beat will come next. At the training time, produced output will be compared against the real next output to calculate loss. This time however, we are barely feeding this output as a next input, as we are treating this process as composing music. Given one initial tuple of note &amp; beat, model can generate infinite number of consequential tuples, as long as we like. Using midicsv utility, we can convert lists of note &amp; beat tuples created from the model back to audible midi format. Files introduced below will be submitted with this report, are some tracks from the model’s creation. There are few noticeable characteristics of model’s creation, and it will be shown in discussion section.<br />
+  <img src="http://localhost:4000/home/taro/my_blog/assets/MB_image/7.png" alt="image7" /></p>
+<h1 id="5-discussion">5. Discussion</h1>
+<p>When creating results, various heights of notes were fed into the model as first note. For beat, most common beat was fed every time. For different model size and depth, same input was given. Comparison of created music with same input, from different model size were done, and there were couple noticeable pattern.</p>
+<ol>
+  <li>Given same input, some track with same input note and beat tuple were exactly same, regardless of model size(number of hidden nodes) and depth. All of these cases, created track was audibly acceptable.</li>
+  <li>Some track with seemingly arbitrary sequence of sounds found in smaller models, changed through bigger \&amp; deeper models.</li>
+  <li>Some track shows partial random note \&amp; beat sequence. The occurrence of these pattern is shown in various places in the track(at the beginning, middle, end).</li>
+  <li>When creating longer track than the original model’s length, repetitive melodies sometimes occur, but eventually it goes over to different melodies.</li>
+  <li>Starting off at less frequently used note doesn’t produce quite as well as frequently played note.</li>
+</ol>
+
+<h1 id="6-conclusion">6. Conclusion</h1>
+<p>Event-based approach produced meaningful results. This shows it is possible for machine to operate in the realms of creativity, which was believed to be unique ability of humanity.</p>
+<h1 id="7-future-work">7. Future Work</h1>
+<p>For this paper, representing musical notation is very similar to those of words. One-hot vector of word representation is very similar to event-based approach of this paper. Word2vec representation is very powerful method of representing words in vectors, and we believe musical events also can be represented in similar way. Finding relative co-occurrence of many different notational events may be capable of handling more variety of events without further expanding the size of the vectors.</p>
+<h2 id="acknowledgements">Acknowledgements</h2>
+<p>This paper is done for the purpose of final project for COSE474, Korea University. We personally thank all the efforts done by prof. Choo and many TAs for the course.</p>
+<h2 id="references">References</h2>
+<p>[1]Allen Huang, Raymond Wu: Deep Learning for Music, 2016.
+  <a href="https://cs224d.stanford.edu/reports/allenh.pdf">https://cs224d.stanford.edu/reports/allenh.pdf</a></p>
+
+
+  </div><a class="u-url" href="/home/taro/my_blog/regular_post/2019/06/17/Mimicking-Bach-Melody-with-LSTM.html" hidden></a>
+</article>
+
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/home/taro/my_blog/"></data>
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">2channelkrt</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li class="p-name">2channelkrt</li><li><a class="u-email" href="mailto:2channelkrt@gmail.com">2channelkrt@gmail.com</a></li></ul>
+      </div>
+
+      <div class="footer-col footer-col-2"><ul class="social-media-list"><li><a href="https://github.com/2channelkrt"><svg class="svg-icon"><use xlink:href="/home/taro/my_blog/assets/minima-social-icons.svg#github"></use></svg> <span class="username">2channelkrt</span></a></li></ul>
+</div>
+
+      <div class="footer-col footer-col-3">
+        <p>Write an awesome description for your new site here. You can edit this line in _config.yml. It will appear in your document head meta (for Google search results) and in your feed.xml site description.</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+</body>
+
+</html>
